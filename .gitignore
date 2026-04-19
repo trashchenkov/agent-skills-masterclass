@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+.uv/
+*.egg-info/
+
+# uv
+uv.lock
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb.bak
+
+# Environment
+.env
+*.env.local
+
+# Output (генерируется агентом в процессе)
+output/
+requirements/
+
+# Slidev
+slides/node_modules/
+slides/.slidev/
+slides/dist/
+
+# macOS
+.DS_Store
