@@ -28,3 +28,4 @@ slides/dist/
 
 # macOS
 .DS_Store
+slides/*.pptx
