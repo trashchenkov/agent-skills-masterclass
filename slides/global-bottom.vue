@@ -1,24 +1,19 @@
 <template>
-  <!-- QR слева: оценка МК -->
+  <!-- QR слева: Telegram-канал -->
   <div class="qr-left">
-    <img src="/qr-eval.png" class="qr-img" alt="Оценить МК" />
-    <div class="qr-label">оценить МК</div>
+    <img src="/qr-telegram.svg" class="qr-img" alt="Telegram-канал" />
+    <div class="qr-label">Telegram</div>
   </div>
 
   <!-- QR справа: репозиторий -->
   <div class="qr-right">
-    <img src="/qr-repo.png" class="qr-img" alt="Репозиторий" />
+    <img src="/qr-repo.svg" class="qr-img" alt="Репозиторий" />
     <div class="qr-label">репозиторий</div>
-  </div>
-
-  <!-- Wi-Fi футер по центру -->
-  <div class="wifi-footer">
-    Wi-Fi&nbsp;&nbsp;·&nbsp;&nbsp;Сеть: <strong>GenAI</strong>&nbsp;&nbsp;·&nbsp;&nbsp;Пароль: <strong>SberAI2026</strong>
   </div>
 </template>
 
 <style>
-/* ── QR левый (оценка МК) ── */
+/* ── QR левый: Telegram ── */
 .qr-left {
   position: fixed;
   left: 20px;
@@ -31,7 +26,7 @@
   pointer-events: none;
 }
 
-/* ── QR правый (репозиторий) ── */
+/* ── QR правый: репозиторий ── */
 .qr-right {
   position: fixed;
   right: 20px;
@@ -62,23 +57,6 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.82);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-}
-
-/* ── Wi-Fi футер ── */
-.wifi-footer {
-  position: fixed;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 50;
-  font-size: 11px;
-  color: #64748b;
-  background: rgba(255, 255, 255, 0.80);
-  padding: 3px 16px;
-  border-radius: 999px;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-  white-space: nowrap;
-  pointer-events: none;
 }
 
 /* ── Отступы контента, чтобы не перекрывался QR ── */

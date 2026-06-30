@@ -1,9 +1,9 @@
 ---
 theme: default
-title: "Один агент, любая задача: реализуем скиллы на LangChain с нуля"
+title: "Один агент, любая задача: скиллы в Deep Agents"
 info: |
-  Теоретическая презентация к мастер-классу
-  «Агенты со скиллами: LangChain v1 и Deep Agents».
+  Презентация к вебинару
+  «Один агент, любая задача: скиллы в Deep Agents».
 class: text-left
 highlighter: shiki
 lineNumbers: false
@@ -19,7 +19,7 @@ layout: cover
 
 # Один агент, любая задача
 
-## Реализуем скиллы на LangChain с нуля
+## Скиллы в Deep Agents
 
 <div class="mt-10">
 Сергей Тращенков<br>
@@ -27,14 +27,14 @@ layout: cover
 </div>
 
 <!--
-Цель: за 7–10 минут дать рамку перед ноутбуком — пока участники скачивают репозиторий и настраивают окружение. QR-слот зарезервирован под ссылку на репозиторий.
+Фокус вебинара: не обзор всего Deep Agents, а skills как практический механизм специализации агента.
 -->
 
 ---
 layout: default
 ---
 
-# Немного о себе
+# Немного о себе и команде
 
 <div class="grid grid-cols-2 gap-12 mt-6">
 <div>
@@ -53,7 +53,11 @@ layout: default
 
 **Сергей Тращенков**
 
-ИИ-энтузиаст, Python-разработчик
+Python-разработчик GigaChain, ИИ-энтузиаст
+
+<div class="mt-6 opacity-80">
+Интересуюсь LangChain, LangGraph, Deep Agents и агентными harness-подходами
+</div>
 
 </div>
 </div>
@@ -62,385 +66,687 @@ layout: default
 layout: default
 ---
 
-# Что разберём
+# План
 
-<v-clicks>
+<div class="grid grid-cols-2 gap-7 mt-8">
+<div class="border border-slate-200 rounded-xl p-6">
 
-1. Почему умный агент всё равно может ошибаться в специфических задачах
-2. Что такое harness и почему он важнее, чем выбор модели
-3. Что дают skills и как они живут внутри harness
-4. Чем skills отличаются от memory
-5. Как скачать материалы и запустить ноутбук мастер-класса
+## 1. От agent loop к harness
 
-</v-clicks>
+Почему одной модели и набора tools недостаточно для длинных специализированных задач.
 
-<!--
-Коротко: сначала проблема, потом архитектура, потом практика.
--->
+</div>
+<div class="border border-slate-200 rounded-xl p-6">
+
+## 2. Deep Agents
+
+Что это за обвязка: LangGraph, файловая система, память, инструменты, middleware и наблюдаемость.
+
+</div>
+<div class="border border-slate-200 rounded-xl p-6 bg-slate-50">
+
+## 3. Skills
+
+Как навык выбирается, как читается `SKILL.md`, где живут helper-скрипты и референсы.
+
+</div>
+<div class="border border-slate-200 rounded-xl p-6 bg-blue-50 border-blue-300">
+
+## 4. Практика
+
+Соберём `xlsx-skill` и используем его для Excel-отчёта с формулами.
+
+</div>
+</div>
+
 
 ---
 layout: section
 ---
 
-# Главная проблема
+# Проблема
 
-## Агент умный, но не эксперт в ваших процессах
+## Как затюнить универсального агента под узкоспециализированные задачи — и не перегрузить контекст инструкциями?
+
 
 ---
 layout: default
 ---
 
-# «Гениальный дилетант»
+# Почему большой prompt не спасает
 
-LLM может отлично рассуждать, писать код и объяснять концепции.
+<div class="grid grid-cols-3 gap-6 mt-8">
+<div class="border border-slate-200 rounded-xl p-5">
 
-Но когда задача требует знания конкретного процесса, агент часто начинает импровизировать:
+## System prompt
 
-<v-clicks>
+Подходит для базового поведения агента.
 
-- оформляет документ «примерно похоже», но не по шаблону;
-- обрабатывает баг-репорт не по вашему процессу;
-- выбирает не тот формат результата;
-- забывает проверить важные ограничения.
+<div class="mt-4 opacity-70">
+Плохо масштабируется, если складывать туда все узкие процедуры и исключения.
+</div>
 
-</v-clicks>
+</div>
+<div class="border border-slate-200 rounded-xl p-5">
 
-<v-click>
+## Tools
+
+Дают агенту действия.
+
+<div class="mt-4 opacity-70">
+Но не описывают процесс целиком; а когда tools много, их описания раздувают контекст и усложняют выбор.
+</div>
+
+</div>
+<div class="border border-slate-200 rounded-xl p-5 bg-slate-50">
+
+## Skills
+
+Дают специализацию по задаче.
+
+<div class="mt-4 opacity-70">
+В prompt попадает короткий индекс, а подробности открываются только при необходимости.
+</div>
+
+</div>
+</div>
+
+---
+layout: default
+---
+
+# ReAct-агент vs agent harness
+
+<div class="mt-4 text-xl opacity-80">
+Harness — это слой вокруг модели, который делает agent loop пригодным для длинных задач: даёт среду, состояние, планирование и правила работы с инструментами.
+</div>
+
+| | Обычный ReAct-агент | Agent harness |
+|---|---|---|
+| Взаимодействие с миром | API-вызовы под конкретную задачу | файловая система, shell/code, внешние tools |
+| Память | история текущего диалога | файлы, store, checkpointing между шагами |
+| Инструменты | узкий набор tools под сценарий | базовый набор операций + подключаемые tools |
+| План и контекст | держатся в сообщениях и легко теряются | выносятся в артефакты: todo, файлы, summary |
+| Охват задач | агент под один класс задач | general-purpose агент для разных сценариев |
 
 <div class="mt-8 text-2xl font-bold">
-Проблема не в интеллекте. Проблема в отсутствии знаний о ваших процессах.
-</div>
-
-</v-click>
-
-<!--
-Аналогия: математический гений, который никогда не работал бухгалтером. Он умный, но не знает ваших процессов.
--->
-
----
-layout: default
----
-
-# Три пути к специализации
-
-| Подход | Что происходит | Сложность |
-|---|---|---|
-| Один агент знает всё | Огромный system prompt | Перегруз контекста, путаница |
-| Много агентов-специалистов | Отдельный агент под каждую задачу | Сложный деплой и оркестрация |
-| Один агент + skills | Компетенция загружается по запросу | Нужно проектировать хорошие скиллы |
-
-<div class="mt-8 text-xl">
-В мастер-классе используем третий путь: универсальный агент + библиотека переиспользуемых процессов.
+Skills ложатся в эту обвязку как способ специализации: агент видит короткий индекс, а инструкции и helper-код читает из файлов по необходимости.
 </div>
 
 ---
 layout: default
 ---
 
-# Аналогия: процессор, ОС, приложения
+# Стек: от langchain-core до Deep Agents
 
-| В компьютере | В агентной системе | Что даёт |
-|---|---|---|
-| **Процессор** | **LLM** | Интеллект: рассуждение, генерация, понимание |
-| **Операционная система** | **Harness** | Среда: инструменты, память, контроль, безопасность |
-| **Приложения** | **Skills** | Экспертиза для конкретных задач |
-
-<div class="mt-8 text-xl">
-Скиллы — это не гонка за «лучшим процессором». Это слой программного обеспечения поверх модели.
+<div class="mt-8 space-y-3 text-xl">
+<div class="border rounded-xl p-4 bg-blue-50 border-blue-300">
+<strong>Deep Agents</strong> — готовый harness: planning · filesystem · subagents · skills
+</div>
+<div class="border rounded-xl p-4">
+<strong>LangChain</strong> — agents, tools, middleware API
+</div>
+<div class="border rounded-xl p-4">
+<strong>LangGraph</strong> — runtime графа, состояние, checkpointing, streaming
+</div>
+<div class="border rounded-xl p-4">
+<strong>langchain-core</strong> — сообщения, модели, tools, Runnable
+</div>
 </div>
 
-<!--
-Важная точка: многие команды тратят время на выбор модели, хотя проблема — в отсутствии harness и skills.
--->
 
 ---
 layout: default
 ---
 
-# Harness: всё, кроме модели
+# Deep Agents = открытая обвязка
 
-<div class="grid grid-cols-2 gap-8 mt-4">
+<div class="grid grid-cols-2 gap-8 mt-6">
 <div>
 
-```text
-Harness
-├─ tools & MCP
-├─ context management
-│  ├─ memory      ← всегда в промпте
-│  ├─ skills      ← по запросу
-│  └─ compaction
-├─ infrastructure
-├─ planning
-├─ safety & HITL
-└─ observability
-```
+## Что даёт
+
+
+- один general-purpose агент вместо отдельного агента под каждую задачу;
+- преднастроенные механизмы для длинных сценариев;
+- возможность менять компоненты обвязки, не меняя модель;
+- поведение ближе к coding-agent системам вроде Claude Code / Codex CLI.
+
 
 </div>
-<div class="flex flex-col justify-center">
+<div>
 
-<div class="text-3xl font-mono font-bold mb-6">
-Agent = Model + Harness
-</div>
+## Что можно настраивать
 
-**2025 год был про агентный цикл.**  
-**2026-й — про harness.**
 
-Anthropic, OpenAI, LangChain, Manus и научное сообщество работают над созданием эффективных обвязок вокруг модели.
+- system prompt;
+- tools;
+- backend файловой системы;
+- memory / store / checkpointer;
+- middleware;
+- subagents;
+- **skills**.
 
-<div class="mt-4 text-sm italic opacity-70">
-«Anytime you find an agent makes a mistake, you take the time to engineer a solution such that the agent never makes that mistake again.»<br>
-— Mitchell Hashimoto, My AI Adoption Journey
-</div>
 
 </div>
 </div>
-
-<!--
-Skills живут внутри context management — они загружаются по запросу в контекстное окно. Memory — фиксированный набор файлов, всегда в промпте. Compaction — сжатие при переполнении окна.
--->
 
 ---
 layout: default
 ---
 
-# LangChain vs Deep Agents
+# Две формы обвязки
 
-| | LangChain v1 | Deep Agents |
-|---|---|---|
-| Что это | ReAct loop | Готовый harness |
-| Planning | — | `write_todos` из коробки |
-| Filesystem | — | `ls`, `read`, `write`, `edit` из коробки |
-| Subagents | — | `task` из коробки |
-| Memory | checkpointer явно | `memory=[...]` — файлы в system prompt |
-| Skills | нет нативной поддержки | `skills=[...]` |
+<div class="grid grid-cols-2 gap-8 mt-8">
+<div class="border border-slate-200 rounded-xl p-6">
 
-<div class="mt-6 text-lg">
-В ноутбуке разберём оба подхода — чтобы понять, что именно делает Deep Agents под капотом.
+## `deepagents`
+
+Библиотека / SDK.
+
+<div class="mt-4 opacity-80">
+Встраиваем агента в свой Python-код, настраиваем модель, tools, backend, skills, memory.
 </div>
 
----
-layout: two-cols
----
+<div class="mt-6 text-lg font-bold">
+Сегодня работаем здесь.
+</div>
 
-# create_agent()
+</div>
+<div class="border border-slate-200 rounded-xl p-6">
 
-```python
-from langchain.agents.middleware import ToolRetryMiddleware
+## `deepagents-code`
 
-agent = create_agent(
-    model=llm,
-    tools=[search, run_code],
-    checkpointer=InMemorySaver(),
-    middleware=[
-        ToolRetryMiddleware(on_failure="continue"),
-    ],
-)
-```
+Готовый coding-agent в терминале.
 
-::right::
+<div class="mt-4 opacity-80">
+Реализован на JS/TS версии SDK: готовый терминальный coding-agent поверх Deep Agents.
+</div>
 
-# create_deep_agent()
-
-```python
-from langchain.agents.middleware import ToolRetryMiddleware
-
-agent = create_deep_agent(
-    model=llm,
-    memory=["/memories/AGENTS.md"],
-    skills=["./skills/"],
-    tools=[search],
-    backend=CompositeBackend(
-        default=StateBackend(),
-        routes={
-            "/memories/": StoreBackend(...),
-        },
-    ),
-    middleware=[
-        ToolRetryMiddleware(on_failure="continue"),
-    ],
-)
-```
-
-<!--
-model, tools, middleware — одинаковые у обоих. Разница — memory, skills, backend. Deep Agents расширяет, а не заменяет LangChain.
--->
+</div>
+</div>
 
 ---
 layout: default
 ---
 
-# Что такое skill
+# Внутри агента: ReAct-цикл в графе
 
-Skill — это переносимая папка с инструкциями и ресурсами:
+<div class="mt-7 grid grid-cols-[1fr_auto_1fr_auto_2.2fr_auto_1fr_auto_1fr] gap-3 items-center text-center">
 
-```text
-my-skill/
-├── SKILL.md        # name + description + инструкции
-├── scripts/        # Python, Bash, JS — исполняемые помощники
-├── references/     # длинные справочники и документация
-└── assets/         # шаблоны, картинки, статические файлы
-```
-
-<div class="mt-6 text-xl">
-Ключевая идея: агент не обязан помнить всё заранее. Он должен уметь найти и прочитать нужную инструкцию в момент выполнения задачи.
+<div class="rounded-xl border border-slate-300 bg-slate-50 p-4">
+  <div class="text-xs uppercase opacity-55">graph node</div>
+  <div class="text-lg font-bold mt-1">before_agent</div>
 </div>
 
-<!--
-Агент видит компактный индекс name: description. Если задача совпала — читает полный SKILL.md. Это прогрессивное раскрытие контекста.
--->
+<div class="text-2xl opacity-50">→</div>
+
+<div class="rounded-xl border border-slate-300 bg-slate-50 p-4">
+  <div class="text-xs uppercase opacity-55">graph node</div>
+  <div class="text-lg font-bold mt-1">before_model</div>
+</div>
+
+<div class="text-2xl opacity-50">→</div>
+
+<div class="rounded-2xl border-2 border-blue-300 bg-blue-50 p-5">
+  <div class="text-xs uppercase tracking-wide opacity-60">ReAct loop</div>
+
+  <div class="mt-3 rounded-xl bg-white border border-blue-200 p-4">
+    <div class="text-xs opacity-60">wrap_model_call</div>
+    <div class="text-2xl font-bold">Model</div>
+    <div class="text-sm opacity-70">reasoning / tool call / final</div>
+  </div>
+
+  <div class="my-2 text-blue-700 font-bold leading-tight">
+    ↓ tool call<br>
+    ↑ observation
+  </div>
+
+  <div class="rounded-xl bg-white border border-amber-300 p-4">
+    <div class="text-xs opacity-60">wrap_tool_call</div>
+    <div class="text-2xl font-bold">Tools</div>
+    <div class="text-sm opacity-70">execute → result</div>
+  </div>
+</div>
+
+<div class="text-2xl opacity-50">→</div>
+
+<div class="rounded-xl border border-slate-300 bg-slate-50 p-4">
+  <div class="text-xs uppercase opacity-55">graph node</div>
+  <div class="text-lg font-bold mt-1">after_model</div>
+</div>
+
+<div class="text-2xl opacity-50">→</div>
+
+<div class="rounded-xl border border-slate-300 bg-slate-50 p-4">
+  <div class="text-xs uppercase opacity-55">graph node</div>
+  <div class="text-lg font-bold mt-1">after_agent</div>
+</div>
+
+</div>
+
+<div class="grid grid-cols-2 gap-8 mt-8">
+<div class="border border-slate-200 rounded-xl p-5">
+
+## `before_*` / `after_*`
+
+Отдельные ноды LangGraph: вставляются в поток выполнения агента.
+
+</div>
+<div class="border border-slate-200 rounded-xl p-5">
+
+## `wrap_model_call` / `wrap_tool_call`
+
+Обёртки вызова: перехватывают model-call или tool-call внутри ReAct-цикла.
+
+</div>
+</div>
 
 ---
 layout: default
 ---
 
-# Skills vs. Memory
+# Skills: специализация по требованию
 
-| | Skills | Memory |
-|---|---|---|
-| Что содержит | Процедуры для конкретных задач | Стиль, соглашения, контекст проекта |
-| Когда загружается | По запросу, когда задача совпала | Всегда, автоматически в промпт |
-| Хранится | Папки на диске, агент читает сам | Фиксированный набор файлов |
-| Пример | «Как создать Word-документ по шаблону» | «Пиши на русском, используй snake_case» |
+<div class="text-2xl leading-relaxed mt-5">
+Skill — это навык в файловой системе агента: короткое описание видно сразу, подробности открываются только после выбора.
+</div>
+
+<div class="grid grid-cols-2 gap-8 mt-8">
+<div class="border border-slate-200 rounded-xl p-6 bg-slate-50">
+
+## До выбора
+
+<div class="mt-4 text-xl">
+Агент видит только короткий индекс:
+</div>
+
+<div class="mt-5 rounded-xl bg-white border border-slate-200 p-4 text-center text-xl font-bold">
+name + description
+</div>
+
+<div class="mt-4 opacity-75">
+Этого достаточно, чтобы понять, подходит ли навык к задаче.
+</div>
+
+</div>
+<div class="border border-blue-300 rounded-xl p-6 bg-blue-50">
+
+## После выбора
+
+<div class="mt-4 text-xl">
+Агент открывает детали навыка:
+</div>
+
+<div class="mt-5 grid grid-cols-2 gap-3 text-center font-bold">
+  <div class="rounded-xl bg-white border border-blue-200 p-4">SKILL.md</div>
+  <div class="rounded-xl bg-white border border-blue-200 p-4">scripts</div>
+  <div class="rounded-xl bg-white border border-blue-200 p-4">references</div>
+  <div class="rounded-xl bg-white border border-blue-200 p-4">examples</div>
+</div>
+
+</div>
+</div>
+
+<div class="mt-8 text-center text-xl">
+<span class="border rounded-xl px-5 py-3 bg-slate-50">задача</span>
+<span class="mx-2">→</span>
+<span class="border rounded-xl px-5 py-3 bg-slate-50">выбор skill</span>
+<span class="mx-2">→</span>
+<span class="border rounded-xl px-5 py-3 bg-blue-50 border-blue-300">чтение инструкции</span>
+<span class="mx-2">→</span>
+<span class="border rounded-xl px-5 py-3 bg-slate-50">выполнение</span>
+<span class="mx-2">→</span>
+<span class="border rounded-xl px-5 py-3 bg-slate-50">проверка</span>
+</div>
+
+---
+layout: default
+---
+
+# Из чего состоит skill
+
+<div class="grid grid-cols-3 gap-6 mt-8">
+<div class="border rounded-xl p-6 bg-blue-50 border-blue-300">
+
+## `SKILL.md`
+
+- когда использовать навык;
+- какой порядок действий;
+- какие ограничения помнить;
+- как понять, что результат готов.
+
+</div>
+<div class="border rounded-xl p-6">
+
+## `scripts/`
+
+- генерация файлов;
+- парсинг данных;
+- вызов библиотек;
+- валидация результата.
+
+</div>
+<div class="border rounded-xl p-6">
+
+## `references/`
+
+- шаблоны;
+- примеры;
+- правила оформления;
+- дополнительные материалы.
+
+</div>
+</div>
 
 <div class="mt-8 text-2xl font-bold">
-Правило: вечные соглашения — в memory, специализированные задачи — в skills.
+Хороший skill переносит повторяемую механику из рассуждения модели в инструкцию и код.
+</div>
+
+---
+layout: default
+---
+
+# Что внутри `SKILL.md`
+
+```md
+---
+name: xlsx
+description: Когда выбирать этот навык
+---
+
+# Назначение
+Что агент должен уметь делать.
+
+# Порядок работы
+1. Что прочитать или уточнить.
+2. Какие действия выполнить.
+3. Какие scripts использовать.
+
+# Ограничения
+Поддерживаемые форматы, запреты, важные договорённости.
+
+# Проверка результата
+Как агент понимает, что задача выполнена корректно.
+```
+
+<div class="mt-5 text-lg opacity-80">
+`description` помогает выбрать навык, тело `SKILL.md` ведёт агента по процессу после выбора.
+</div>
+
+---
+layout: default
+---
+
+# Skills, tools и memory
+
+| | Tools | Skills | Memory |
+|---|---|---|---|
+| Отвечают на вопрос | Что агент может вызвать? | Как выполнить специализированную задачу? | Что агент должен помнить? |
+| Что внутри | Функция/API и её описание | Инструкция, scripts, references | Факты, предпочтения, правила проекта |
+| Когда полезно | Нужно действие | Нужен процесс | Нужен устойчивый контекст |
+| Пример | `write_file`, `execute`, `read_csv` | «Собрать Excel-отчёт с формулами» | «В этой команде отчёт называется sales_report» |
+
+<div class="mt-8 text-2xl font-bold">
+Tools дают действия, memory хранит контекст, skills задают процедуру.
 </div>
 
 ---
 layout: section
 ---
 
-# Материалы мастер-класса
+# Практика
 
-## Последние шаги: скачать, установить, запустить
-
----
-layout: default
----
-
-# 1. Скачать репозиторий
-
-Отсканируйте QR-код на слайде или откройте ссылку на репозиторий материалов.
-
-```bash
-git clone https://github.com/trashchenkov/agent-skills-masterclass
-cd agent-skills-masterclass
-```
-
-Если архив скачан вручную:
-
-```bash
-unzip masterclass.zip
-cd agent-skills-masterclass
-```
-
+## Реализуем xlsx-skill и делаем Excel-отчёт с формулами
 
 ---
 layout: default
 ---
 
-# 2. Установить окружение
+# Почему не берём готовый `xlsx-skill`
+
+<div class="text-xl opacity-80 mt-4">
+Источник: репозиторий <code>anthropics/skills</code>. Берём его как reference, потому что Anthropic фактически сформулировали pattern skills для агентов.
+</div>
+
+<div class="grid grid-cols-2 gap-8 mt-7">
+<div class="border border-green-300 rounded-xl p-6 bg-green-50">
+
+## `skill-creator`
+
+Лицензия: **Apache 2.0**.
+
+<div class="mt-4 opacity-80">
+Его можно подключить к Deep Agents и использовать как инструмент для создания своих навыков.
+</div>
+
+</div>
+<div class="border border-amber-300 rounded-xl p-6 bg-amber-50">
+
+## `xlsx`, `docx`, `pdf`, `pptx`
+
+Лицензия: **proprietary**.
+
+<div class="mt-4 opacity-80">
+Их нельзя просто вынести из сервисов Anthropic, скопировать, создать производную версию или распространять.
+</div>
+
+</div>
+</div>
+
+<div class="mt-8 text-2xl font-bold">
+Поэтому процесс такой: открытый `skill-creator` используем, закрытый `xlsx` изучаем как идею, а свой навык пишем заново.
+</div>
+
+<div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1">
+  <img :src="'/qr-anthropic-skills.svg'" class="w-22 h-22 bg-white rounded-lg p-1 shadow" alt="anthropics/skills" />
+  <div class="text-[10px] uppercase tracking-wide opacity-70 bg-white/80 rounded-full px-3 py-0.5 shadow-sm">anthropics/skills</div>
+</div>
+
+---
+layout: default
+---
+
+# Что будем собирать: свой `xlsx-skill`
+
+<div class="text-xl opacity-80 mt-4">
+Не копия Anthropic skill, а новый навык для Deep Agents: написанный своими словами и со своими helper-скриптами.
+</div>
+
+```text
+skills/
+└── xlsx/
+    ├── SKILL.md
+    └── scripts/
+        ├── create_workbook.py
+        └── validate_workbook.py
+```
+
+<div class="mt-6 grid grid-cols-2 gap-8">
+<div>
+
+## Что берём из reference
+
+Идею устройства навыка: когда он триггерится, как разбивать работу на инструкцию и scripts, какие проверки нужны.
+
+</div>
+<div>
+
+## Что пишем сами
+
+`SKILL.md` и Python-код на `openpyxl`: таблица, формулы `SUM` / `AVERAGE`, проверка результата.
+
+</div>
+</div>
+
+---
+layout: default
+---
+
+# Workflow в ноутбуке
+
+1. Клонируем `anthropics/skills` во временную папку
+2. Копируем в проект только `skill-creator` — он Apache 2.0
+3. Просим агента изучить proprietary `xlsx` как reference: `SKILL.md` и scripts
+4. Через `skill-creator` создаём свой `skills/xlsx/` с нуля
+5. Проверяем навык на `output/test.xlsx` с формулой `SUM`
+
+<div class="mt-8 text-xl opacity-80">
+Практика проходит полный цикл: изучаем reference, создаём свой skill, применяем его и проверяем результат.
+</div>
+
+---
+layout: default
+---
+
+# Задача для xlsx-skill
+
+<div class="mt-6 text-2xl">
+Сгенерировать Excel-отчёт по продажам.
+</div>
+
+<div class="grid grid-cols-2 gap-8 mt-8">
+<div>
+
+## Данные
+
+- регионы;
+- товары;
+- количество;
+- цена;
+- сумма строки.
+
+</div>
+<div>
+
+## Формулы и проверка
+
+- итоговая сумма через `SUM`;
+- среднее значение через `AVERAGE`;
+- базовое форматирование;
+- проверка, что формулы записаны в ячейки.
+
+</div>
+</div>
+
+<div class="mt-8 text-xl font-bold">
+Проверку запускаем в новой сессии: индекс skills пересобирается, и новый `xlsx` появляется в системном prompt.
+</div>
+
+---
+layout: default
+---
+
+# Наблюдаемость: Phoenix
+
+<div class="text-xl opacity-80 mt-4">
+В ноутбуке мы запускаем локальный Phoenix и подключаем OpenInference-инструментирование LangChain. Так видно не только финальный ответ, но и шаги агента.
+</div>
+
+<div class="grid grid-cols-2 gap-8 mt-7">
+<div>
+
+## В трейсе видно
+
+- какие сообщения ушли в модель;
+- какие tools вызвал агент;
+- прочитал ли он `SKILL.md`;
+- какие файлы и scripts использовал;
+- расход токенов и время выполнения;
+- где появились лишние шаги или цикл.
+
+</div>
+<div>
+
+## Зачем это в практике
+
+- отлаживать поведение агента по шагам;
+- проверять, что новый skill реально сработал;
+- собирать удачные и неудачные прогоны в датасет;
+- запускать эксперименты и оценки после изменений;
+- улучшать `SKILL.md` и helper-скрипты по trace.
+
+</div>
+</div>
+
+---
+layout: section
+---
+
+# Материалы
+
+## Репозиторий, ноутбук, QR-коды
+
+---
+layout: default
+---
+
+# Скачать репозиторий
+
+Отсканируйте QR-код «репозиторий» или откройте ветку с материалами вебинара.
+
+```bash
+git clone --branch codex/deep-agents-only-materials \
+  https://github.com/trashchenkov/agent-skills-masterclass
+cd agent-skills-masterclass
+```
+
+<div class="mt-6 text-xl opacity-80">
+Ветка отдельная, чтобы материалы вебинара не смешивались с прошлой конференционной версией.
+</div>
+
+---
+layout: default
+---
+
+# Установить окружение
 
 Нужны Python 3.12+ и `uv`.
 
 ```bash
-uv init masterclass --python 3.12 --no-workspace
-cd masterclass
-```
+uv init . --python 3.12 --no-workspace
 
-Установите зависимости:
-
-```bash
 uv add jupyter \
-        langchain langchain-core langchain-ollama langchain-openrouter \
-        deepagents langgraph \
-        arize-phoenix openinference-instrumentation-langchain \
-        opentelemetry-sdk opentelemetry-exporter-otlp \
-        python-docx openpyxl python-dotenv
+  langchain langchain-core langchain-openrouter \
+  deepagents langgraph \
+  arize-phoenix openinference-instrumentation-langchain \
+  opentelemetry-sdk opentelemetry-exporter-otlp \
+  openpyxl python-dotenv
 ```
+
+<div class="mt-6 text-lg opacity-80">
+Для практики с Excel ключевые зависимости: `deepagents`, `langgraph`, `openpyxl`, Phoenix-инструментирование.
+</div>
 
 ---
 layout: default
 ---
 
-# 3. Настроить ключи и модель
+# Запустить ноутбук
 
-Для OpenRouter-варианта добавьте ключ в `.env`:
+Добавьте ключ модели в `.env` и запустите Jupyter через `uv`:
 
 ```bash
 echo "OPENROUTER_API_KEY=sk-or-v1-..." >> .env
-```
-
-В ноутбуке модель задаётся один раз в конфигурационной ячейке:
-
-```python
-from langchain_openrouter import ChatOpenRouter
-
-llm = ChatOpenRouter(model="z-ai/glm-5.1")
-```
-
-Все агенты дальше используют только переменную `llm`.
-
----
-layout: default
----
-
-# 4. Запустить блокнот
-
-Запускайте Jupyter только через `uv run`, чтобы он видел зависимости проекта:
-
-```bash
 uv run jupyter notebook masterclass.ipynb
 ```
 
-После открытия выполняйте ячейки сверху вниз и смотрите трейсы в Phoenix.
-
 <div class="mt-8 text-xl font-bold">
-Не запускайте `jupyter notebook` без `uv run` из системного окружения.
+Phoenix откроется локально: <code>http://localhost:6006</code>
 </div>
 
----
-layout: default
----
-
-# Что строим сегодня
-
-<div class="grid grid-cols-3 gap-8 mt-6">
-<div class="border border-slate-200 rounded-xl p-5">
-
-**Блок 1 — docx**
-
-Изучаем референсный скилл Anthropic → пишем свой `docx`-скилл с нуля → создаём документ
-
-</div>
-<div class="border border-slate-200 rounded-xl p-5">
-
-**Блок 2 — xlsx**
-
-То же для Excel, плюс скилл должен уметь работать с формулами
-
-</div>
-<div class="border border-slate-200 rounded-xl p-5">
-
-**Блок 3 — LangChain v1**
-
-Создаём требования к баг-репортам → агент читает документ и генерирует скилл → тест на реальном баге
-
-</div>
-</div>
-
-<div class="mt-8 text-lg">
-Один агент, одна папка со скиллами — и три разных специализации.
+<div class="mt-4 text-lg opacity-80">
+Там будем смотреть, как агент выбирает skill, читает инструкции, запускает tools и проверяет результат.
 </div>
 
 ---
 layout: end
 ---
 
-# Готово
+# Переходим к ноутбуку
 
-## Переходим к ноутбуку
+## Делаем xlsx-skill
 
 <div class="mt-8 text-xl opacity-80">
-QR-код ведёт в репозиторий с материалами мастер-класса.
+QR-коды ведут в ветку репозитория с материалами вебинара и в Telegram-канал.
 </div>
