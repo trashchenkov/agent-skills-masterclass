@@ -1,4 +1,4 @@
-# Один агент, любая задача: реализуем скиллы на LangChain с нуля
+# Один агент, любая задача: скиллы в Deep Agents
 
 Материалы мастер-класса Сергея Тращенкова (GigaChain / Сбер).
 
@@ -25,7 +25,7 @@ uv add jupyter \
     deepagents langgraph \
     arize-phoenix openinference-instrumentation-langchain \
     opentelemetry-sdk opentelemetry-exporter-otlp \
-    python-docx openpyxl python-dotenv
+    openpyxl python-dotenv
 
 echo "OPENROUTER_API_KEY=sk-or-v1-..." >> .env
 
@@ -34,25 +34,22 @@ uv run jupyter notebook masterclass.ipynb
 
 ## Структура ноутбука
 
-**Setup** — окружение, LLM, Phoenix, skill-creator
+**Setup** — окружение, LLM, Phoenix, клонирование `anthropics/skills`, подключение `skill-creator`.
 
-**Блок 1 — docx** — изучаем референсный скилл Anthropic → создаём свой `docx`-скилл → демо
+**Практика — xlsx-skill** — изучаем proprietary `xlsx` из Anthropic как reference, создаём собственный `skills/xlsx/` через `skill-creator`, затем в новой сессии генерируем Excel-отчёт с формулами `SUM` и `AVERAGE`.
 
-**Блок 2 — xlsx** — то же для Excel, плюс формулы
-
-**Блок 3 — LangChain v1** — создаём документ с требованиями → LangChain-агент читает его и генерирует `bug-report`-скилл → тест на реальном баге
+**Выводы и материалы** — что даёт skills-подход, почему нужна проверка результата и куда смотреть дальше.
 
 ## Модели
 
 По умолчанию используется GLM-5.1 через OpenRouter. В ноутбуке закомментированы альтернативы:
-- OpenRouter free (например, `meta-llama/llama-3.3-70b-instruct:free`)
+- OpenRouter free
 - Ollama Cloud
 - OpenAI
 
 ## Наблюдаемость
 
-После запуска Phoenix откройте [http://localhost:6006](http://localhost:6006) — там трейсы всех агентов.
-Инструментирование через `openinference-instrumentation-langchain` работает одинаково для Deep Agents и LangChain v1.
+После запуска Phoenix откройте [http://localhost:6006](http://localhost:6006) — там видны трейсы агента: вызовы модели, инструменты, чтение файлов, расход токенов и время выполнения.
 
 ## Слайды
 
