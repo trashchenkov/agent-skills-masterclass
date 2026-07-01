@@ -47,6 +47,8 @@ layout: default
 - интеграционный пакет для LangChain (`langchain-gigachat`)
 - прокси-сервер `GPT2GIGA`
 - универсальный ИИ-агент `GigaAgent`
+- бенчмарк harness-подходов ([`harness-bench-fast`](https://github.com/ai-forever/harness-bench-fast))
+- интеграция Deep Agents с GigaChat ([`deepagents-gigachat`](https://github.com/ai-forever/deepagents-gigachat))
 
 </div>
 <div>
