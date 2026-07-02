@@ -16,7 +16,7 @@ agent-skills-masterclass/
 Нужны Python 3.12+ и [`uv`](https://docs.astral.sh/uv/).
 
 ```bash
-git clone https://github.com/trashchenkov/agent-skills-masterclass
+git clone -b codex/deep-agents-only-materials https://github.com/trashchenkov/agent-skills-masterclass
 cd agent-skills-masterclass
 
 uv init . --python 3.12 --no-workspace
